@@ -114,7 +114,7 @@ select {
       if (points === 7) return "Very Great";
       if (points === 8) return "Elite";
       if (points === 9) return "Insane";
-      if (points === 10) return "Ace / Cracked";
+      if (points === 10) return "Ace 🔥";
       return "";
     }
 
@@ -142,8 +142,8 @@ select {
             document.getElementById(`p${i}`).innerText = p;
             document.getElementById(`r${i}`).innerText = getRating(p);
           } else {
-            document.getElementById(`p${i}`).innerText = "0";
-            document.getElementById(`r${i}`).innerText = "Bad";
+            document.getElementById(`p${i}`).innerText = "-";
+            document.getElementById(`r${i}`).innerText = "Not Played";
           }
         } else {
           row.style.display = "none";
@@ -166,8 +166,8 @@ select {
       for (let i = 0; i < maxRounds; i++) {
         document.getElementById(`k${i}`).value = "";
         document.getElementById(`a${i}`).value = "";
-        document.getElementById(`p${i}`).innerText = "0";
-        document.getElementById(`r${i}`).innerText = "Bad";
+        document.getElementById(`p${i}`).innerText = "-";
+        document.getElementById(`r${i}`).innerText = "Not Played";
       }
       document.getElementById("summary").innerText = "";
     }
@@ -228,8 +228,8 @@ select {
         <td>${i + 1}</td>
         <td><input id="k${i}" type="number" min="0" oninput="updateSummary()"></td>
         <td><input id="a${i}" type="number" min="0" oninput="updateSummary()"></td>
-        <td id="p${i}">0</td>
-        <td id="r${i}">Bad</td>
+        <td id="p${i}">-</td>
+        <td id="r${i}">Not Played</td>
       `;
       tbody.appendChild(row);
     }
