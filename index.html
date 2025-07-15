@@ -5,6 +5,7 @@
   <title>Valorant Score Tracker</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#00ff99" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #111;
@@ -12,57 +13,56 @@
       --primary: #00ff99;
       --border: #444;
       --input-bg: #222;
-    }body {
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
-h1 {
-  color: var(--primary);
-}
-table {
-  border-collapse: collapse;
-  width: 100%;
-  max-width: 600px;
-}
-th, td {
-  border: 1px solid var(--border);
-  padding: 8px;
-  text-align: center;
-}
-input {
-  width: 80px;
-  padding: 4px;
-  background: var(--input-bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  text-align: center;
-}
-.result, .actions {
-  margin-top: 20px;
-  font-size: 1em;
-}
-button {
-  padding: 6px 12px;
-  margin: 5px;
-  background: var(--primary);
-  border: none;
-  color: #000;
-  font-weight: bold;
-  cursor: pointer;
-  border-radius: 6px;
-}
-select {
-  padding: 6px;
-  background: var(--input-bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      color: var(--primary);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: center;
+    }
+    input, select {
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 4px;
+    }
+    button {
+      padding: 6px 12px;
+      margin: 5px;
+      background: var(--primary);
+      border: none;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    .graph-section {
+      display: none;
+      margin-top: 30px;
+      width: 100%;
+      max-width: 700px;
+    }
+    canvas {
+      background: #1a1a1a;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
   </style>
 </head>
 <body>
@@ -79,6 +79,7 @@ select {
     <br><br>
     <label for="roundLimit">Rounds Played:</label>
     <select id="roundLimit" onchange="updateSummary()"></select>
+    <button onclick="toggleGraphs()">View Graphs</button>
   </div>  <table>
     <thead>
       <tr>
@@ -91,43 +92,37 @@ select {
     </thead>
     <tbody id="rounds"></tbody>
   </table>
-  <div class="result" id="summary"></div>  <script>
+  <div class="result" id="summary"></div>  <div class="graph-section" id="graphSection">
+    <canvas id="pointsChart"></canvas>
+    <canvas id="kaChart"></canvas>
+    <canvas id="ratingPie"></canvas>
+  </div>  <script>
     const maxRounds = 40;
     const tbody = document.getElementById("rounds");
 
-    function getRating(points) {
-      if (points === 0) return "Bad";
-      if (points === 1) return "Not Fine";
-      if (points === 2) return "Fine";
-      if (points === 3) return "Above Fine";
-      if (points === 4) return "Strong";
-      if (points === 5) return "Very Strong";
-      if (points === 6) return "Great";
-      if (points === 7) return "Very Great";
-      if (points === 8) return "Elite";
-      if (points === 9) return "Insane";
-      if (points === 10) return "Ace 🔥";
-      return "";
-    }
+    const roundData = Array(maxRounds).fill({ kills: 0, assists: 0 });
 
-    function getAverageRating(avg) {
-      const avgNum = parseFloat(avg);
-      if (avgNum < 1) return "Bad";
-      if (avgNum < 2) return "Not Fine";
-      if (avgNum < 3) return "Fine";
-      if (avgNum < 4) return "Above Fine";
-      if (avgNum < 5) return "Strong";
-      if (avgNum < 6) return "Very Strong";
-      if (avgNum < 7) return "Great";
-      if (avgNum < 8) return "Very Great";
-      if (avgNum < 9) return "Elite";
-      if (avgNum < 10) return "Insane";
-      return "Ace 🔥";
+    const ratingLevels = [
+      "Bad", "Not Fine", "Fine", "Above Fine",
+      "Strong", "Very Strong", "Great", "Very Great",
+      "Elite", "Insane", "Ace 🔥"
+    ];
+
+    const ratingThresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    let chartsRendered = false;
+
+    function getRating(points) {
+      for (let i = ratingThresholds.length - 1; i >= 0; i--) {
+        if (points >= ratingThresholds[i]) return ratingLevels[i];
+      }
+      return "Not Played";
     }
 
     function updateSummary() {
       const limit = parseInt(document.getElementById("roundLimit").value);
       let totalKills = 0, totalAssists = 0, totalPoints = 0, countedRounds = 0;
+      let ratingCount = {};
 
       for (let i = 0; i < maxRounds; i++) {
         const row = document.getElementById(`row${i}`);
@@ -147,7 +142,9 @@ select {
             totalAssists += a;
             totalPoints += p;
             document.getElementById(`p${i}`).innerText = p;
-            document.getElementById(`r${i}`).innerText = getRating(p);
+            const rating = getRating(p);
+            document.getElementById(`r${i}`).innerText = rating;
+            ratingCount[rating] = (ratingCount[rating] || 0) + 1;
           } else {
             document.getElementById(`p${i}`).innerText = "-";
             document.getElementById(`r${i}`).innerText = "Not Played";
@@ -157,12 +154,60 @@ select {
         }
       }
 
-      const avgPoints = countedRounds > 0 ? (totalPoints / countedRounds).toFixed(2) : 0;
-      const avgKills = countedRounds > 0 ? (totalKills / countedRounds).toFixed(2) : 0;
-      const avgAssists = countedRounds > 0 ? (totalAssists / countedRounds).toFixed(2) : 0;
-      const overall = getAverageRating(avgPoints);
+      const avgPoints = countedRounds ? (totalPoints / countedRounds).toFixed(2) : 0;
+      const avgKills = countedRounds ? (totalKills / countedRounds).toFixed(2) : 0;
+      const avgAssists = countedRounds ? (totalAssists / countedRounds).toFixed(2) : 0;
+
+      const overall = getRating(parseFloat(avgPoints));
 
       document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
+
+      if (chartsRendered) renderCharts(limit, ratingCount);
+    }
+
+    function toggleGraphs() {
+      const section = document.getElementById("graphSection");
+      if (section.style.display === "none" || section.style.display === "") {
+        section.style.display = "block";
+        chartsRendered = true;
+        updateSummary();
+      } else {
+        section.style.display = "none";
+      }
+    }
+
+    function renderCharts(limit, ratingCount) {
+      const kills = [], assists = [], points = [], labels = [];
+
+      for (let i = 0; i < limit; i++) {
+        const k = Number(document.getElementById(`k${i}`).value) || 0;
+        const a = Number(document.getElementById(`a${i}`).value) || 0;
+        kills.push(k);
+        assists.push(a);
+        points.push(k * 2 + a);
+        labels.push(`R${i + 1}`);
+      }
+
+      const pieLabels = Object.keys(ratingCount);
+      const pieData = Object.values(ratingCount);
+
+      new Chart(document.getElementById("pointsChart"), {
+        type: 'line', data: { labels, datasets: [{ label: 'Points per Round', data: points, borderColor: '#00ff99', backgroundColor: '#00ff9988', fill: false }] }, options: { responsive: true }
+      });
+
+      new Chart(document.getElementById("kaChart"), {
+        type: 'bar', data: { labels, datasets: [
+          { label: 'Kills', data: kills, backgroundColor: 'red' },
+          { label: 'Assists', data: assists, backgroundColor: 'blue' }
+        ] }, options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+
+      new Chart(document.getElementById("ratingPie"), {
+        type: 'doughnut', data: {
+          labels: pieLabels,
+          datasets: [{ data: pieData, backgroundColor: ['#ff3333','#ff9933','#ffff33','#99ff33','#33ff99','#33ffff','#3399ff','#6633ff','#9933ff','#ff33cc','#ff3399'] }]
+        }, options: { responsive: true }
+      });
     }
 
     function confirmReset() {
@@ -200,11 +245,7 @@ select {
 
     function loadOrNewMatch() {
       const key = document.getElementById("savedMatches").value;
-      if (!key) {
-        resetMatch();
-        return;
-      }
-
+      if (!key) return resetMatch();
       const data = JSON.parse(localStorage.getItem(`match_${key}`));
       if (!data) return;
 
