@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Valorant Round Tracker</title>
+  <title>Valorant Score Tracker</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#00ff99" />
   <style>
@@ -13,62 +12,82 @@
       --primary: #00ff99;
       --border: #444;
       --input-bg: #222;
-    }
+    }@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #fff;
+    --text: #111;
+    --primary: #007f5f;
+    --border: #ccc;
+    --input-bg: #f0f0f0;
+  }
+}
 
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #fff;
-        --text: #111;
-        --primary: #007f5f;
-        --border: #ccc;
-        --input-bg: #f0f0f0;
-      }
-    }
+body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+h1 {
+  color: var(--primary);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 600px;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  text-align: center;
+}
+input {
+  width: 80px;
+  padding: 4px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.result, .actions {
+  margin-top: 20px;
+  font-size: 1em;
+}
+button {
+  padding: 6px 12px;
+  margin: 5px;
+  background: var(--primary);
+  border: none;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+}
+select {
+  padding: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
 
-    body {
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-
-    h1 {
-      color: var(--primary);
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-    }
-
-    th, td {
-      border: 1px solid var(--border);
-      padding: 8px;
-      text-align: center;
-    }
-
-    input {
-      width: 50px;
-      padding: 4px;
-      background: var(--input-bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      text-align: center;
-    }
-
-    .result {
-      margin-top: 20px;
-      font-size: 1.2em;
-    }
   </style>
 </head>
 <body>
-  <h1>Valorant Round Tracker</h1>
-  <table>
+  <h1>Valorant Score Tracker</h1>
+  <div class="actions">
+    <input id="matchName" placeholder="Match Name" />
+    <button onclick="saveMatch()">Save Match</button>
+    <button onclick="confirmReset()">Reset</button>
+    <select id="savedMatches" onchange="loadMatch()">
+      <option value="">-- Load Match --</option>
+    </select>
+    <br><br>
+    <label for="roundLimit">Rounds Played:</label>
+    <select id="roundLimit" onchange="updateSummary()"></select>
+  </div>  <table>
     <thead>
       <tr>
         <th>Round</th>
@@ -80,10 +99,8 @@
     </thead>
     <tbody id="rounds"></tbody>
   </table>
-  <div class="result" id="summary"></div>
-
-  <script>
-    const rounds = 25;
+  <div class="result" id="summary"></div>  <script>
+    const maxRounds = 40;
     const tbody = document.getElementById("rounds");
 
     function getRating(points) {
@@ -102,33 +119,101 @@
     }
 
     function updateSummary() {
-      let totalKills = 0;
-      let totalAssists = 0;
-      let totalPoints = 0;
-      let filledRounds = 0;
+      const limit = parseInt(document.getElementById("roundLimit").value);
+      let totalKills = 0, totalAssists = 0, totalPoints = 0, filledRounds = 0;
 
-      for (let i = 0; i < rounds; i++) {
-        const k = parseInt(document.getElementById(`k${i}`).value) || 0;
-        const a = parseInt(document.getElementById(`a${i}`).value) || 0;
-        const p = k * 2 + a;
-        if (k + a > 0) filledRounds++;
-        totalKills += k;
-        totalAssists += a;
-        totalPoints += p;
-
-        document.getElementById(`p${i}`).innerText = p;
-        document.getElementById(`r${i}`).innerText = getRating(p);
+      for (let i = 0; i < maxRounds; i++) {
+        const row = document.getElementById(`row${i}`);
+        if (i < limit) {
+          row.style.display = "";
+          const k = parseInt(document.getElementById(`k${i}`).value) || 0;
+          const a = parseInt(document.getElementById(`a${i}`).value) || 0;
+          const p = k * 2 + a;
+          if (k + a > 0) filledRounds++;
+          totalKills += k;
+          totalAssists += a;
+          totalPoints += p;
+          document.getElementById(`p${i}`).innerText = p;
+          document.getElementById(`r${i}`).innerText = getRating(p);
+        } else {
+          row.style.display = "none";
+        }
       }
 
-      const avg = filledRounds > 0 ? (totalPoints / filledRounds).toFixed(2) : 0;
-      const overall = getRating(Math.round(avg));
+      const avgPoints = filledRounds > 0 ? (totalPoints / filledRounds).toFixed(2) : 0;
+      const avgKills = filledRounds > 0 ? (totalKills / filledRounds).toFixed(2) : 0;
+      const avgAssists = filledRounds > 0 ? (totalAssists / filledRounds).toFixed(2) : 0;
+      const overall = getRating(Math.round(avgPoints));
 
-      document.getElementById("summary").innerText =
-        `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Points/Round: ${avg} → Overall Rating: ${overall}`;
+      document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
     }
 
-    for (let i = 0; i < rounds; i++) {
+    function confirmReset() {
+      if (confirm("Are you sure you want to reset this match?")) resetMatch();
+    }
+
+    function resetMatch() {
+      for (let i = 0; i < maxRounds; i++) {
+        document.getElementById(`k${i}`).value = "";
+        document.getElementById(`a${i}`).value = "";
+        document.getElementById(`p${i}`).innerText = "0";
+        document.getElementById(`r${i}`).innerText = "Bad";
+      }
+      document.getElementById("summary").innerText = "";
+    }
+
+    function saveMatch() {
+      const name = document.getElementById("matchName").value.trim();
+      if (!name) return alert("Please enter a match name before saving.");
+      const limit = parseInt(document.getElementById("roundLimit").value);
+      const data = { limit, rounds: [] };
+
+      for (let i = 0; i < limit; i++) {
+        const kills = parseInt(document.getElementById(`k${i}`).value) || 0;
+        const assists = parseInt(document.getElementById(`a${i}`).value) || 0;
+        data.rounds.push({ kills, assists });
+      }
+
+      localStorage.setItem(`match_${name}`, JSON.stringify(data));
+      updateSavedList();
+      alert(`Match '${name}' saved.`);
+    }
+
+    function loadMatch() {
+      const key = document.getElementById("savedMatches").value;
+      if (!key) return;
+
+      const data = JSON.parse(localStorage.getItem(`match_${key}`));
+      if (!data) return;
+
+      document.getElementById("roundLimit").value = data.limit;
+      for (let i = 0; i < maxRounds; i++) {
+        const k = data.rounds[i]?.kills || "";
+        const a = data.rounds[i]?.assists || "";
+        document.getElementById(`k${i}`).value = k;
+        document.getElementById(`a${i}`).value = a;
+      }
+      updateSummary();
+    }
+
+    function updateSavedList() {
+      const select = document.getElementById("savedMatches");
+      select.innerHTML = '<option value="">-- Load Match --</option>';
+      for (let key in localStorage) {
+        if (key.startsWith("match_")) {
+          const name = key.replace("match_", "");
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.text = name;
+          select.appendChild(opt);
+        }
+      }
+    }
+
+    // Init UI
+    for (let i = 0; i < maxRounds; i++) {
       const row = document.createElement("tr");
+      row.id = `row${i}`;
       row.innerHTML = `
         <td>${i + 1}</td>
         <td><input id="k${i}" type="number" min="0" oninput="updateSummary()"></td>
@@ -138,6 +223,17 @@
       `;
       tbody.appendChild(row);
     }
-  </script>
-</body>
+
+    const roundLimit = document.getElementById("roundLimit");
+    for (let i = 1; i <= maxRounds; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.text = `${i} Rounds`;
+      roundLimit.appendChild(opt);
+    }
+    roundLimit.value = "25";
+
+    updateSavedList();
+    updateSummary();
+  </script></body>
 </html>
