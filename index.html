@@ -120,29 +120,39 @@ select {
 
     function updateSummary() {
       const limit = parseInt(document.getElementById("roundLimit").value);
-      let totalKills = 0, totalAssists = 0, totalPoints = 0, filledRounds = 0;
+      let totalKills = 0, totalAssists = 0, totalPoints = 0, countedRounds = 0;
 
       for (let i = 0; i < maxRounds; i++) {
         const row = document.getElementById(`row${i}`);
         if (i < limit) {
           row.style.display = "";
-          const k = parseInt(document.getElementById(`k${i}`).value) || 0;
-          const a = parseInt(document.getElementById(`a${i}`).value) || 0;
-          const p = k * 2 + a;
-          if (k + a > 0) filledRounds++;
-          totalKills += k;
-          totalAssists += a;
-          totalPoints += p;
-          document.getElementById(`p${i}`).innerText = p;
-          document.getElementById(`r${i}`).innerText = getRating(p);
+          const kInput = document.getElementById(`k${i}`);
+          const aInput = document.getElementById(`a${i}`);
+          const kRaw = kInput.value;
+          const aRaw = aInput.value;
+
+          if (kRaw !== "" || aRaw !== "") {
+            const k = parseInt(kRaw) || 0;
+            const a = parseInt(aRaw) || 0;
+            const p = k * 2 + a;
+            countedRounds++;
+            totalKills += k;
+            totalAssists += a;
+            totalPoints += p;
+            document.getElementById(`p${i}`).innerText = p;
+            document.getElementById(`r${i}`).innerText = getRating(p);
+          } else {
+            document.getElementById(`p${i}`).innerText = "0";
+            document.getElementById(`r${i}`).innerText = "Bad";
+          }
         } else {
           row.style.display = "none";
         }
       }
 
-      const avgPoints = filledRounds > 0 ? (totalPoints / filledRounds).toFixed(2) : 0;
-      const avgKills = filledRounds > 0 ? (totalKills / filledRounds).toFixed(2) : 0;
-      const avgAssists = filledRounds > 0 ? (totalAssists / filledRounds).toFixed(2) : 0;
+      const avgPoints = countedRounds > 0 ? (totalPoints / countedRounds).toFixed(2) : 0;
+      const avgKills = countedRounds > 0 ? (totalKills / countedRounds).toFixed(2) : 0;
+      const avgAssists = countedRounds > 0 ? (totalAssists / countedRounds).toFixed(2) : 0;
       const overall = getRating(Math.round(avgPoints));
 
       document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
