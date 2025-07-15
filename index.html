@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Valorant Score Tracker</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#00ff99" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #111;
@@ -52,6 +52,17 @@
       cursor: pointer;
       border-radius: 6px;
     }
+    .graph-section {
+      display: none;
+      margin-top: 30px;
+      width: 100%;
+      max-width: 700px;
+    }
+    canvas {
+      background: #1a1a1a;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
   </style>
 </head>
 <body>
@@ -68,9 +79,8 @@
     <br><br>
     <label for="roundLimit">Rounds Played:</label>
     <select id="roundLimit" onchange="updateSummary()"></select>
-  </div>
-
-  <table>
+    <button onclick="toggleGraphs()">View Graphs</button>
+  </div>  <table>
     <thead>
       <tr>
         <th>Round</th>
@@ -82,18 +92,25 @@
     </thead>
     <tbody id="rounds"></tbody>
   </table>
-  <div class="result" id="summary"></div>
-
-  <script>
+  <div class="result" id="summary"></div>  <div class="graph-section" id="graphSection">
+    <canvas id="pointsChart"></canvas>
+    <canvas id="kaChart"></canvas>
+    <canvas id="ratingPie"></canvas>
+  </div>  <script>
     const maxRounds = 40;
     const tbody = document.getElementById("rounds");
+
+    const roundData = Array(maxRounds).fill({ kills: 0, assists: 0 });
 
     const ratingLevels = [
       "Bad", "Not Fine", "Fine", "Above Fine",
       "Strong", "Very Strong", "Great", "Very Great",
       "Elite", "Insane", "Ace 🔥"
     ];
+
     const ratingThresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    let chartsRendered = false;
 
     function getRating(points) {
       for (let i = ratingThresholds.length - 1; i >= 0; i--) {
@@ -105,6 +122,7 @@
     function updateSummary() {
       const limit = parseInt(document.getElementById("roundLimit").value);
       let totalKills = 0, totalAssists = 0, totalPoints = 0, countedRounds = 0;
+      let ratingCount = {};
 
       for (let i = 0; i < maxRounds; i++) {
         const row = document.getElementById(`row${i}`);
@@ -124,7 +142,9 @@
             totalAssists += a;
             totalPoints += p;
             document.getElementById(`p${i}`).innerText = p;
-            document.getElementById(`r${i}`).innerText = getRating(p);
+            const rating = getRating(p);
+            document.getElementById(`r${i}`).innerText = rating;
+            ratingCount[rating] = (ratingCount[rating] || 0) + 1;
           } else {
             document.getElementById(`p${i}`).innerText = "-";
             document.getElementById(`r${i}`).innerText = "Not Played";
@@ -139,7 +159,55 @@
       const avgAssists = countedRounds ? (totalAssists / countedRounds).toFixed(2) : 0;
 
       const overall = getRating(parseFloat(avgPoints));
+
       document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
+
+      if (chartsRendered) renderCharts(limit, ratingCount);
+    }
+
+    function toggleGraphs() {
+      const section = document.getElementById("graphSection");
+      if (section.style.display === "none" || section.style.display === "") {
+        section.style.display = "block";
+        chartsRendered = true;
+        updateSummary();
+      } else {
+        section.style.display = "none";
+      }
+    }
+
+    function renderCharts(limit, ratingCount) {
+      const kills = [], assists = [], points = [], labels = [];
+
+      for (let i = 0; i < limit; i++) {
+        const k = Number(document.getElementById(`k${i}`).value) || 0;
+        const a = Number(document.getElementById(`a${i}`).value) || 0;
+        kills.push(k);
+        assists.push(a);
+        points.push(k * 2 + a);
+        labels.push(`R${i + 1}`);
+      }
+
+      const pieLabels = Object.keys(ratingCount);
+      const pieData = Object.values(ratingCount);
+
+      new Chart(document.getElementById("pointsChart"), {
+        type: 'line', data: { labels, datasets: [{ label: 'Points per Round', data: points, borderColor: '#00ff99', backgroundColor: '#00ff9988', fill: false }] }, options: { responsive: true }
+      });
+
+      new Chart(document.getElementById("kaChart"), {
+        type: 'bar', data: { labels, datasets: [
+          { label: 'Kills', data: kills, backgroundColor: 'red' },
+          { label: 'Assists', data: assists, backgroundColor: 'blue' }
+        ] }, options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+
+      new Chart(document.getElementById("ratingPie"), {
+        type: 'doughnut', data: {
+          labels: pieLabels,
+          datasets: [{ data: pieData, backgroundColor: ['#ff3333','#ff9933','#ffff33','#99ff33','#33ff99','#33ffff','#3399ff','#6633ff','#9933ff','#ff33cc','#ff3399'] }]
+        }, options: { responsive: true }
+      });
     }
 
     function confirmReset() {
@@ -254,6 +322,5 @@
 
     updateSavedList();
     updateSummary();
-  </script>
-</body>
+  </script></body>
 </html>
