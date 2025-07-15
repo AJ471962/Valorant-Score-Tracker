@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valorant Round Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#00ff99" />
+  <style>
+    :root {
+      --bg: #111;
+      --text: #eee;
+      --primary: #00ff99;
+      --border: #444;
+      --input-bg: #222;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #fff;
+        --text: #111;
+        --primary: #007f5f;
+        --border: #ccc;
+        --input-bg: #f0f0f0;
+      }
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: var(--primary);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: center;
+    }
+
+    input {
+      width: 50px;
+      padding: 4px;
+      background: var(--input-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Valorant Round Tracker</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Round</th>
+        <th>Kills</th>
+        <th>Assists</th>
+        <th>Points</th>
+        <th>Rating</th>
+      </tr>
+    </thead>
+    <tbody id="rounds"></tbody>
+  </table>
+  <div class="result" id="summary"></div>
+
+  <script>
+    const rounds = 25;
+    const tbody = document.getElementById("rounds");
+
+    function getRating(points) {
+      if (points === 0) return "Bad";
+      if (points === 1) return "Not Fine";
+      if (points === 2) return "Fine";
+      if (points === 3) return "Above Fine";
+      if (points === 4) return "Strong";
+      if (points === 5) return "Very Strong";
+      if (points === 6) return "Great";
+      if (points === 7) return "Very Great";
+      if (points === 8) return "Elite";
+      if (points === 9) return "Insane";
+      if (points === 10) return "Ace / Cracked";
+      return "";
+    }
+
+    function updateSummary() {
+      let totalKills = 0;
+      let totalAssists = 0;
+      let totalPoints = 0;
+      let filledRounds = 0;
+
+      for (let i = 0; i < rounds; i++) {
+        const k = parseInt(document.getElementById(`k${i}`).value) || 0;
+        const a = parseInt(document.getElementById(`a${i}`).value) || 0;
+        const p = k * 2 + a;
+        if (k + a > 0) filledRounds++;
+        totalKills += k;
+        totalAssists += a;
+        totalPoints += p;
+
+        document.getElementById(`p${i}`).innerText = p;
+        document.getElementById(`r${i}`).innerText = getRating(p);
+      }
+
+      const avg = filledRounds > 0 ? (totalPoints / filledRounds).toFixed(2) : 0;
+      const overall = getRating(Math.round(avg));
+
+      document.getElementById("summary").innerText =
+        `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Points/Round: ${avg} → Overall Rating: ${overall}`;
+    }
+
+    for (let i = 0; i < rounds; i++) {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td><input id="k${i}" type="number" min="0" oninput="updateSummary()"></td>
+        <td><input id="a${i}" type="number" min="0" oninput="updateSummary()"></td>
+        <td id="p${i}">0</td>
+        <td id="r${i}">Bad</td>
+      `;
+      tbody.appendChild(row);
+    }
+  </script>
+</body>
+</html>
