@@ -110,6 +110,21 @@ select {
       return "";
     }
 
+    function getAverageRating(avg) {
+      const avgNum = parseFloat(avg);
+      if (avgNum < 1) return "Bad";
+      if (avgNum < 2) return "Not Fine";
+      if (avgNum < 3) return "Fine";
+      if (avgNum < 4) return "Above Fine";
+      if (avgNum < 5) return "Strong";
+      if (avgNum < 6) return "Very Strong";
+      if (avgNum < 7) return "Great";
+      if (avgNum < 8) return "Very Great";
+      if (avgNum < 9) return "Elite";
+      if (avgNum < 10) return "Insane";
+      return "Ace 🔥";
+    }
+
     function updateSummary() {
       const limit = parseInt(document.getElementById("roundLimit").value);
       let totalKills = 0, totalAssists = 0, totalPoints = 0, countedRounds = 0;
@@ -124,8 +139,8 @@ select {
           const aRaw = aInput.value;
 
           if (kRaw !== "" || aRaw !== "") {
-            const k = parseInt(kRaw) || 0;
-            const a = parseInt(aRaw) || 0;
+            const k = Number(kRaw);
+            const a = Number(aRaw);
             const p = k * 2 + a;
             countedRounds++;
             totalKills += k;
@@ -145,7 +160,7 @@ select {
       const avgPoints = countedRounds > 0 ? (totalPoints / countedRounds).toFixed(2) : 0;
       const avgKills = countedRounds > 0 ? (totalKills / countedRounds).toFixed(2) : 0;
       const avgAssists = countedRounds > 0 ? (totalAssists / countedRounds).toFixed(2) : 0;
-      const overall = getRating(Math.round(avgPoints));
+      const overall = getAverageRating(avgPoints);
 
       document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
     }
@@ -172,9 +187,9 @@ select {
       const data = { limit, rounds: [] };
 
       for (let i = 0; i < limit; i++) {
-        const kills = parseInt(document.getElementById(`k${i}`).value) || 0;
-        const assists = parseInt(document.getElementById(`a${i}`).value) || 0;
-        data.rounds.push({ kills, assists });
+        const k = document.getElementById(`k${i}`).value;
+        const a = document.getElementById(`a${i}`).value;
+        data.rounds.push({ kills: k === "" ? "" : Number(k), assists: a === "" ? "" : Number(a) });
       }
 
       localStorage.setItem(`match_${name}`, JSON.stringify(data));
@@ -195,10 +210,9 @@ select {
 
       document.getElementById("roundLimit").value = data.limit;
       for (let i = 0; i < maxRounds; i++) {
-        const k = data.rounds[i]?.kills || "";
-        const a = data.rounds[i]?.assists || "";
-        document.getElementById(`k${i}`).value = k;
-        document.getElementById(`a${i}`).value = a;
+        const round = data.rounds[i] || {};
+        document.getElementById(`k${i}`).value = round.kills !== undefined ? round.kills : "";
+        document.getElementById(`a${i}`).value = round.assists !== undefined ? round.assists : "";
       }
       updateSummary();
     }
