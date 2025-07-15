@@ -12,9 +12,7 @@
       --primary: #00ff99;
       --border: #444;
       --input-bg: #222;
-    }
-
-body {
+    }body {
   font-family: Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -73,9 +71,11 @@ select {
     <input id="matchName" placeholder="Match Name" />
     <button onclick="saveMatch()">Save Match</button>
     <button onclick="confirmReset()">Reset</button>
-    <select id="savedMatches" onchange="loadMatch()">
-      <option value="">-- Load Match --</option>
+    <select id="savedMatches" onchange="loadOrNewMatch()">
+      <option value="">-- New Match --</option>
     </select>
+    <button onclick="renameMatch()">Rename</button>
+    <button onclick="deleteMatch()">Delete</button>
     <br><br>
     <label for="roundLimit">Rounds Played:</label>
     <select id="roundLimit" onchange="updateSummary()"></select>
@@ -161,6 +161,7 @@ select {
         document.getElementById(`p${i}`).innerText = "-";
         document.getElementById(`r${i}`).innerText = "Not Played";
       }
+      document.getElementById("roundLimit").value = 25;
       document.getElementById("summary").innerText = "";
     }
 
@@ -177,13 +178,17 @@ select {
       }
 
       localStorage.setItem(`match_${name}`, JSON.stringify(data));
+      document.getElementById("matchName").value = "";
       updateSavedList();
       alert(`Match '${name}' saved.`);
     }
 
-    function loadMatch() {
+    function loadOrNewMatch() {
       const key = document.getElementById("savedMatches").value;
-      if (!key) return;
+      if (!key) {
+        resetMatch();
+        return;
+      }
 
       const data = JSON.parse(localStorage.getItem(`match_${key}`));
       if (!data) return;
@@ -200,7 +205,7 @@ select {
 
     function updateSavedList() {
       const select = document.getElementById("savedMatches");
-      select.innerHTML = '<option value="">-- Load Match --</option>';
+      select.innerHTML = '<option value="">-- New Match --</option>';
       for (let key in localStorage) {
         if (key.startsWith("match_")) {
           const name = key.replace("match_", "");
@@ -212,7 +217,32 @@ select {
       }
     }
 
-    // Init UI
+    function deleteMatch() {
+      const select = document.getElementById("savedMatches");
+      const matchName = select.value;
+      if (!matchName) return alert("Select a match to delete.");
+      if (confirm(`Are you sure you want to delete match '${matchName}'?`)) {
+        localStorage.removeItem(`match_${matchName}`);
+        updateSavedList();
+        resetMatch();
+        alert(`Match '${matchName}' deleted.`);
+      }
+    }
+
+    function renameMatch() {
+      const select = document.getElementById("savedMatches");
+      const oldName = select.value;
+      if (!oldName) return alert("Select a match to rename.");
+      const newName = prompt("Enter new match name:", oldName);
+      if (!newName || newName.trim() === "") return;
+      const data = localStorage.getItem(`match_${oldName}`);
+      localStorage.removeItem(`match_${oldName}`);
+      localStorage.setItem(`match_${newName}`, data);
+      updateSavedList();
+      select.value = newName;
+      alert(`Match renamed to '${newName}'.`);
+    }
+
     for (let i = 0; i < maxRounds; i++) {
       const row = document.createElement("tr");
       row.id = `row${i}`;
