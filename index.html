@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,45 +12,57 @@
       --primary: #00ff99;
       --border: #444;
       --input-bg: #222;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-    h1 {
-      color: var(--primary);
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-    }
-    th, td {
-      border: 1px solid var(--border);
-      padding: 8px;
-      text-align: center;
-    }
-    input, select {
-      background: var(--input-bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 4px;
-    }
-    button {
-      padding: 6px 12px;
-      margin: 5px;
-      background: var(--primary);
-      border: none;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 6px;
-    }
+    }body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+h1 {
+  color: var(--primary);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 600px;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  text-align: center;
+}
+input {
+  width: 80px;
+  padding: 4px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.result, .actions {
+  margin-top: 20px;
+  font-size: 1em;
+}
+button {
+  padding: 6px 12px;
+  margin: 5px;
+  background: var(--primary);
+  border: none;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+}
+select {
+  padding: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
   </style>
 </head>
 <body>
@@ -68,9 +79,7 @@
     <br><br>
     <label for="roundLimit">Rounds Played:</label>
     <select id="roundLimit" onchange="updateSummary()"></select>
-  </div>
-
-  <table>
+  </div>  <table>
     <thead>
       <tr>
         <th>Round</th>
@@ -82,24 +91,38 @@
     </thead>
     <tbody id="rounds"></tbody>
   </table>
-  <div class="result" id="summary"></div>
-
-  <script>
+  <div class="result" id="summary"></div>  <script>
     const maxRounds = 40;
     const tbody = document.getElementById("rounds");
 
-    const ratingLevels = [
-      "Bad", "Not Fine", "Fine", "Above Fine",
-      "Strong", "Very Strong", "Great", "Very Great",
-      "Elite", "Insane", "Ace 🔥"
-    ];
-    const ratingThresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
     function getRating(points) {
-      for (let i = ratingThresholds.length - 1; i >= 0; i--) {
-        if (points >= ratingThresholds[i]) return ratingLevels[i];
-      }
-      return "Not Played";
+      if (points === 0) return "Bad";
+      if (points === 1) return "Not Fine";
+      if (points === 2) return "Fine";
+      if (points === 3) return "Above Fine";
+      if (points === 4) return "Strong";
+      if (points === 5) return "Very Strong";
+      if (points === 6) return "Great";
+      if (points === 7) return "Very Great";
+      if (points === 8) return "Elite";
+      if (points === 9) return "Insane";
+      if (points === 10) return "Ace 🔥";
+      return "";
+    }
+
+    function getAverageRating(avg) {
+      const avgNum = parseFloat(avg);
+      if (avgNum < 1) return "Bad";
+      if (avgNum < 2) return "Not Fine";
+      if (avgNum < 3) return "Fine";
+      if (avgNum < 4) return "Above Fine";
+      if (avgNum < 5) return "Strong";
+      if (avgNum < 6) return "Very Strong";
+      if (avgNum < 7) return "Great";
+      if (avgNum < 8) return "Very Great";
+      if (avgNum < 9) return "Elite";
+      if (avgNum < 10) return "Insane";
+      return "Ace 🔥";
     }
 
     function updateSummary() {
@@ -134,11 +157,11 @@
         }
       }
 
-      const avgPoints = countedRounds ? (totalPoints / countedRounds).toFixed(2) : 0;
-      const avgKills = countedRounds ? (totalKills / countedRounds).toFixed(2) : 0;
-      const avgAssists = countedRounds ? (totalAssists / countedRounds).toFixed(2) : 0;
+      const avgPoints = countedRounds > 0 ? (totalPoints / countedRounds).toFixed(2) : 0;
+      const avgKills = countedRounds > 0 ? (totalKills / countedRounds).toFixed(2) : 0;
+      const avgAssists = countedRounds > 0 ? (totalAssists / countedRounds).toFixed(2) : 0;
+      const overall = getAverageRating(avgPoints);
 
-      const overall = getRating(parseFloat(avgPoints));
       document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
     }
 
@@ -177,7 +200,11 @@
 
     function loadOrNewMatch() {
       const key = document.getElementById("savedMatches").value;
-      if (!key) return resetMatch();
+      if (!key) {
+        resetMatch();
+        return;
+      }
+
       const data = JSON.parse(localStorage.getItem(`match_${key}`));
       if (!data) return;
 
@@ -254,6 +281,5 @@
 
     updateSavedList();
     updateSummary();
-  </script>
-</body>
+  </script></body>
 </html>
