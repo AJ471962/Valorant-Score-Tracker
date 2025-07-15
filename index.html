@@ -5,7 +5,6 @@
   <title>Valorant Score Tracker</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#00ff99" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #111;
@@ -13,52 +12,57 @@
       --primary: #00ff99;
       --border: #444;
       --input-bg: #222;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-    }
-    h1 {
-      color: var(--primary);
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      max-width: 600px;
-    }
-    th, td {
-      border: 1px solid var(--border);
-      padding: 8px;
-      text-align: center;
-    }
-    input, select {
-      width: 80px;
-      background: var(--input-bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 4px;
-    }
-    button {
-      padding: 6px 12px;
-      margin: 5px;
-      background: var(--primary);
-      border: none;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 6px;
-    }
-    #chartContainer {
-      display: none;
-      width: 90%;
-      max-width: 600px;
-      margin-top: 30px;
-    }
+    }body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+h1 {
+  color: var(--primary);
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 600px;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  text-align: center;
+}
+input {
+  width: 80px;
+  padding: 4px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.result, .actions {
+  margin-top: 20px;
+  font-size: 1em;
+}
+button {
+  padding: 6px 12px;
+  margin: 5px;
+  background: var(--primary);
+  border: none;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+}
+select {
+  padding: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
   </style>
 </head>
 <body>
@@ -75,7 +79,6 @@
     <br><br>
     <label for="roundLimit">Rounds Played:</label>
     <select id="roundLimit" onchange="updateSummary()"></select>
-    <button onclick="toggleChart()">View Graphs</button>
   </div>  <table>
     <thead>
       <tr>
@@ -88,32 +91,43 @@
     </thead>
     <tbody id="rounds"></tbody>
   </table>
-  <div class="result" id="summary"></div>
-  <div id="chartContainer">
-    <canvas id="roundChart"></canvas>
-  </div>  <script>
+  <div class="result" id="summary"></div>  <script>
     const maxRounds = 40;
     const tbody = document.getElementById("rounds");
-    let roundChart;
-
-    const ratingLevels = [
-      "Bad", "Not Fine", "Fine", "Above Fine",
-      "Strong", "Very Strong", "Great", "Very Great",
-      "Elite", "Insane", "Ace 🔥"
-    ];
-    const ratingThresholds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     function getRating(points) {
-      for (let i = ratingThresholds.length - 1; i >= 0; i--) {
-        if (points >= ratingThresholds[i]) return ratingLevels[i];
-      }
-      return "Not Played";
+      if (points === 0) return "Bad";
+      if (points === 1) return "Not Fine";
+      if (points === 2) return "Fine";
+      if (points === 3) return "Above Fine";
+      if (points === 4) return "Strong";
+      if (points === 5) return "Very Strong";
+      if (points === 6) return "Great";
+      if (points === 7) return "Very Great";
+      if (points === 8) return "Elite";
+      if (points === 9) return "Insane";
+      if (points === 10) return "Ace 🔥";
+      return "";
+    }
+
+    function getAverageRating(avg) {
+      const avgNum = parseFloat(avg);
+      if (avgNum < 1) return "Bad";
+      if (avgNum < 2) return "Not Fine";
+      if (avgNum < 3) return "Fine";
+      if (avgNum < 4) return "Above Fine";
+      if (avgNum < 5) return "Strong";
+      if (avgNum < 6) return "Very Strong";
+      if (avgNum < 7) return "Great";
+      if (avgNum < 8) return "Very Great";
+      if (avgNum < 9) return "Elite";
+      if (avgNum < 10) return "Insane";
+      return "Ace 🔥";
     }
 
     function updateSummary() {
       const limit = parseInt(document.getElementById("roundLimit").value);
       let totalKills = 0, totalAssists = 0, totalPoints = 0, countedRounds = 0;
-      let killsData = [], assistsData = [], pointsData = [], labels = [];
 
       for (let i = 0; i < maxRounds; i++) {
         const row = document.getElementById(`row${i}`);
@@ -134,10 +148,6 @@
             totalPoints += p;
             document.getElementById(`p${i}`).innerText = p;
             document.getElementById(`r${i}`).innerText = getRating(p);
-            killsData.push(k);
-            assistsData.push(a);
-            pointsData.push(p);
-            labels.push(`R${i+1}`);
           } else {
             document.getElementById(`p${i}`).innerText = "-";
             document.getElementById(`r${i}`).innerText = "Not Played";
@@ -147,42 +157,129 @@
         }
       }
 
-      const avgPoints = countedRounds ? (totalPoints / countedRounds).toFixed(2) : 0;
-      const avgKills = countedRounds ? (totalKills / countedRounds).toFixed(2) : 0;
-      const avgAssists = countedRounds ? (totalAssists / countedRounds).toFixed(2) : 0;
-      const overall = getRating(parseFloat(avgPoints));
+      const avgPoints = countedRounds > 0 ? (totalPoints / countedRounds).toFixed(2) : 0;
+      const avgKills = countedRounds > 0 ? (totalKills / countedRounds).toFixed(2) : 0;
+      const avgAssists = countedRounds > 0 ? (totalAssists / countedRounds).toFixed(2) : 0;
+      const overall = getAverageRating(avgPoints);
 
       document.getElementById("summary").innerText = `Total Kills: ${totalKills} | Total Assists: ${totalAssists} | Total Points: ${totalPoints} | Avg Kills/Round: ${avgKills} | Avg Assists/Round: ${avgAssists} | Avg Points/Round: ${avgPoints} → Overall Rating: ${overall}`;
+    }
 
-      if (roundChart) roundChart.destroy();
-      const ctx = document.getElementById("roundChart").getContext("2d");
-      roundChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Kills', data: killsData, borderColor: '#00ff99', fill: false },
-            { label: 'Assists', data: assistsData, borderColor: '#0099ff', fill: false },
-            { label: 'Points', data: pointsData, borderColor: '#ff33cc', fill: false }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { labels: { color: '#eee' } } },
-          scales: {
-            x: { ticks: { color: '#eee' } },
-            y: { ticks: { color: '#eee' } }
-          }
+    function confirmReset() {
+      if (confirm("Are you sure you want to reset this match?")) resetMatch();
+    }
+
+    function resetMatch() {
+      for (let i = 0; i < maxRounds; i++) {
+        document.getElementById(`k${i}`).value = "";
+        document.getElementById(`a${i}`).value = "";
+        document.getElementById(`p${i}`).innerText = "-";
+        document.getElementById(`r${i}`).innerText = "Not Played";
+      }
+      document.getElementById("roundLimit").value = 25;
+      document.getElementById("summary").innerText = "";
+    }
+
+    function saveMatch() {
+      const name = document.getElementById("matchName").value.trim();
+      if (!name) return alert("Please enter a match name before saving.");
+      const limit = parseInt(document.getElementById("roundLimit").value);
+      const data = { limit, rounds: [] };
+
+      for (let i = 0; i < limit; i++) {
+        const k = document.getElementById(`k${i}`).value;
+        const a = document.getElementById(`a${i}`).value;
+        data.rounds.push({ kills: k === "" ? "" : Number(k), assists: a === "" ? "" : Number(a) });
+      }
+
+      localStorage.setItem(`match_${name}`, JSON.stringify(data));
+      document.getElementById("matchName").value = "";
+      updateSavedList();
+      alert(`Match '${name}' saved.`);
+    }
+
+    function loadOrNewMatch() {
+      const key = document.getElementById("savedMatches").value;
+      if (!key) {
+        resetMatch();
+        return;
+      }
+
+      const data = JSON.parse(localStorage.getItem(`match_${key}`));
+      if (!data) return;
+
+      document.getElementById("roundLimit").value = data.limit;
+      for (let i = 0; i < maxRounds; i++) {
+        const round = data.rounds[i] || {};
+        document.getElementById(`k${i}`).value = round.kills !== undefined ? round.kills : "";
+        document.getElementById(`a${i}`).value = round.assists !== undefined ? round.assists : "";
+      }
+      updateSummary();
+    }
+
+    function updateSavedList() {
+      const select = document.getElementById("savedMatches");
+      select.innerHTML = '<option value="">-- New Match --</option>';
+      for (let key in localStorage) {
+        if (key.startsWith("match_")) {
+          const name = key.replace("match_", "");
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.text = name;
+          select.appendChild(opt);
         }
-      });
+      }
     }
 
-    function toggleChart() {
-      const chart = document.getElementById("chartContainer");
-      chart.style.display = chart.style.display === "none" ? "block" : "none";
+    function deleteMatch() {
+      const select = document.getElementById("savedMatches");
+      const matchName = select.value;
+      if (!matchName) return alert("Select a match to delete.");
+      if (confirm(`Are you sure you want to delete match '${matchName}'?`)) {
+        localStorage.removeItem(`match_${matchName}`);
+        updateSavedList();
+        resetMatch();
+        alert(`Match '${matchName}' deleted.`);
+      }
     }
 
-    // Other unchanged functions below (resetMatch, saveMatch, loadOrNewMatch, updateSavedList, deleteMatch, renameMatch)
-    // ... [omitted here for brevity but will remain in your current version] ...
+    function renameMatch() {
+      const select = document.getElementById("savedMatches");
+      const oldName = select.value;
+      if (!oldName) return alert("Select a match to rename.");
+      const newName = prompt("Enter new match name:", oldName);
+      if (!newName || newName.trim() === "") return;
+      const data = localStorage.getItem(`match_${oldName}`);
+      localStorage.removeItem(`match_${oldName}`);
+      localStorage.setItem(`match_${newName}`, data);
+      updateSavedList();
+      select.value = newName;
+      alert(`Match renamed to '${newName}'.`);
+    }
+
+    for (let i = 0; i < maxRounds; i++) {
+      const row = document.createElement("tr");
+      row.id = `row${i}`;
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td><input id="k${i}" type="number" min="0" oninput="updateSummary()"></td>
+        <td><input id="a${i}" type="number" min="0" oninput="updateSummary()"></td>
+        <td id="p${i}">-</td>
+        <td id="r${i}">Not Played</td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    const roundLimit = document.getElementById("roundLimit");
+    for (let i = 1; i <= maxRounds; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.text = `${i} Rounds`;
+      roundLimit.appendChild(opt);
+    }
+    roundLimit.value = "25";
+
+    updateSavedList();
+    updateSummary();
   </script></body>
 </html>
